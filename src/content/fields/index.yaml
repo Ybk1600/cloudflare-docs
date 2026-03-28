@@ -416,11 +416,22 @@ entries:
 
       **Note**: This raw field may include some basic normalization done by Cloudflare's HTTP server. However, this can change in the future.
 
+  - name: raw.http.request.uri
+    data_type: String
+    categories: [Request, URI, Raw fields]
+    keywords:
+      [request, uri, url, path, query, query string, raw, client, visitor]
+    summary: The URI path and query string of the request without any transformation.
+    description: |-
+      This is the raw field version of the [`http.request.uri`](/ruleset-engine/rules-language/fields/reference/http.request.uri/) field. Raw fields, prefixed with `raw.`, preserve original request values for later evaluations. These fields are immutable during the entire request evaluation workflow, and they are not affected by the actions of previously matched rules.
+
+      **Note**: This raw field may include some basic normalization done by Cloudflare's HTTP server. However, this can change in the future.
+
   - name: raw.http.request.uri.path
     data_type: String
     categories: [Request, URI, Raw fields]
     keywords: [request, uri, url, path, raw, client, visitor]
-    summary: The raw URI path and query string of the request without any transformation.
+    summary: The raw URI path of the request without any transformation.
     description: |-
       This is the raw field version of the [`http.request.uri.path`](/ruleset-engine/rules-language/fields/reference/http.request.uri.path/) field. Raw fields, prefixed with `raw.`, preserve original request values for later evaluations. These fields are immutable during the entire request evaluation workflow, and they are not affected by the actions of previously matched rules.
 
@@ -443,6 +454,47 @@ entries:
       This is the raw field version of the [`http.request.uri.query`](/ruleset-engine/rules-language/fields/reference/http.request.uri.query/) field. Raw fields, prefixed with `raw.`, preserve original request values for later evaluations. These fields are immutable during the entire request evaluation workflow, and they are not affected by the actions of previously matched rules.
 
       **Note**: This raw field may include some basic normalization done by Cloudflare's HTTP server. However, this can change in the future.
+
+  - name: raw.http.response.headers
+    data_type: Map<Array<String>>
+    categories: [Response, Headers, Raw fields]
+    keywords: [response, raw]
+    summary: The HTTP response headers without any transformation represented as a Map (or associative array).
+    description: |-
+      This is the raw field version of the [`http.response.headers`](/ruleset-engine/rules-language/fields/reference/http.response.headers/) field. Raw fields, prefixed with `raw.`, preserve original response values for later evaluations. These fields are immutable during the entire request evaluation workflow, and they are not affected by the actions of previously matched rules.
+    example_value: |-
+      {"server": ["nginx"]}
+    example_block: |-
+      any(raw.http.response.headers["server"][*] == "nginx")
+
+  - name: raw.http.response.headers.names
+    data_type: Array<String>
+    categories: [Response, Headers, Raw fields]
+    keywords: [response, raw]
+    summary: The names of the headers in the HTTP response without any transformation.
+    description: |-
+      This is the raw field version of the [`http.response.headers.names`](/ruleset-engine/rules-language/fields/reference/http.response.headers.names/) field. Raw fields, prefixed with `raw.`, preserve original response values for later evaluations. These fields are immutable during the entire request evaluation workflow, and they are not affected by the actions of previously matched rules.
+    example_value: |-
+      ["content-type"]
+    example_block: |-
+      any(raw.http.response.headers.names[*] == "content-type")
+
+  - name: raw.http.response.headers.values
+    data_type: Array<String>
+    categories: [Response, Headers, Raw fields]
+    keywords: [response, raw]
+    summary: The values of the headers in the HTTP response without any transformation.
+    description: |-
+      This is the raw field version of the [`http.response.headers.values`](/ruleset-engine/rules-language/fields/reference/http.response.headers.values/) field. Raw fields, prefixed with `raw.`, preserve original response values for later evaluations. These fields are immutable during the entire request evaluation workflow, and they are not affected by the actions of previously matched rules.
+    example_value: |-
+      Example 1: ["application/json"]
+      Example 2: ["This header value is longer than 10 bytes"]
+    example_block: |-
+      # Example 1: Check for specific header value.
+      any(raw.http.response.headers.values[*] == "application/json")
+
+      # Example 2: Match requests according to the specified operator and the length/size entered for the header value.
+      any(len(raw.http.response.headers.values[*])[*] gt 10)
 
   - name: ssl
     data_type: Boolean
@@ -486,7 +538,7 @@ entries:
     keywords: [request, bots, client, visitor]
     summary: Provides the type and purpose of a verified bot.
     description: |-
-      For more details, refer to [Verified bot categories](/bots/concepts/bot/verified-bots/categories/).
+      For more details, refer to [Verified bot categories](/bots/concepts/bot/verified-bots/#categories).
 
   - name: cf.bot_management.score
     data_type: Number
@@ -500,7 +552,7 @@ entries:
       Requires a Cloudflare Enterprise plan with [Bot Management](/bots/plans/bm-subscription/) enabled.
 
   - name: cf.bot_management.static_resource
-    data_type: Number
+    data_type: Boolean
     categories: [Request, Bots]
     keywords: [request, bots, client, visitor]
     plan_info_label: Enterprise add-on
@@ -573,7 +625,7 @@ entries:
       This field is only meaningful for [BYOIP customers](/byoip/).
 
   - name: cf.edge.server_port
-    data_type: IP address
+    data_type: Number
     categories: [Request]
     keywords: [request, cloudflare, client, visitor]
     summary: Represents the port number at which the Cloudflare global network received the request.
@@ -784,6 +836,60 @@ entries:
     example_value: |-
       "8204924CF49D471E855862706D889F58F6B784D3"
 
+  - name: cf.tls_client_auth.cert_rfc9440
+    data_type: String
+    categories: [Request, mTLS]
+    keywords: [request, ssl, mtls, client, visitor, rfc9440, certificate]
+    summary: The client leaf certificate encoded in RFC 9440 format.
+    description: |-
+      Contains the client leaf certificate as a DER-encoded, Base64-encoded value wrapped in colons. For example, `:MIIDsT...Vw==:`. This is the format defined by [RFC 9440](https://www.rfc-editor.org/rfc/rfc9440) for the `Client-Cert` HTTP header.
+
+      The field value is an empty string (`""`) if no client certificate was presented.
+
+      This field is only filled in if the request includes a client certificate for [mTLS authentication](/ssl/client-certificates/enable-mtls/).
+
+      When forwarding this value as a request header to your origin server, ensure clients cannot inject their own HTTP header. Refer to the [changelog](/changelog/post/2026-03-25-rfc9440-mtls-fields/) for usage guidance.
+    example_value: |-
+      ":MIIDsTCCApmgAwIBAgIUUVyw...Vw==:"
+
+  - name: cf.tls_client_auth.cert_rfc9440_too_large
+    data_type: Boolean
+    categories: [Request, mTLS]
+    keywords: [request, ssl, mtls, client, visitor, rfc9440, certificate]
+    summary: Returns `true` if the client leaf certificate exceeded the 10 KB encoding limit and was omitted from `cf.tls_client_auth.cert_rfc9440`.
+    description: |-
+      When `true`, [`cf.tls_client_auth.cert_rfc9440`](/ruleset-engine/rules-language/fields/reference/cf.tls_client_auth.cert_rfc9440/) will be empty. In practice, leaf certificates are almost always well under 10 KB, so this field will almost always be `false`.
+
+      This field is only filled in if the request includes a client certificate for [mTLS authentication](/ssl/client-certificates/enable-mtls/).
+
+  - name: cf.tls_client_auth.cert_chain_rfc9440
+    data_type: String
+    categories: [Request, mTLS]
+    keywords: [request, ssl, mtls, client, visitor, rfc9440, certificate, chain]
+    summary: The intermediate certificate chain in RFC 9440 format.
+    description: |-
+      Contains the intermediate certificates (all certificates between the leaf and the root, excluding both) as a comma-separated list of RFC 9440-encoded values. For example, `:MIIDnz...g==:, :MIIDjD...45:`. This is the format defined by [RFC 9440](https://www.rfc-editor.org/rfc/rfc9440) for the `Client-Cert-Chain` HTTP header.
+
+      The chain order follows TLS ordering: the certificate closest to the leaf appears first, working up toward the trust anchor. The root certificate is not included.
+
+      The field value is an empty string (`""`) if no client certificate was presented, if no intermediates were sent, or if the chain exceeded 16 KB (refer to [`cf.tls_client_auth.cert_chain_rfc9440_too_large`](/ruleset-engine/rules-language/fields/reference/cf.tls_client_auth.cert_chain_rfc9440_too_large/)).
+
+      This field is only filled in if the request includes a client certificate for [mTLS authentication](/ssl/client-certificates/enable-mtls/).
+
+      When forwarding this value as a request header to your origin server, ensure clients cannot inject their own HTTP header. Refer to the [changelog](/changelog/post/2026-03-25-rfc9440-mtls-fields/) for usage guidance.
+    example_value: |-
+      ":MIIDnzCCAoeg...g==:, :MIIDjDCCAn...45:"
+
+  - name: cf.tls_client_auth.cert_chain_rfc9440_too_large
+    data_type: Boolean
+    categories: [Request, mTLS]
+    keywords: [request, ssl, mtls, client, visitor, rfc9440, certificate, chain]
+    summary: Returns `true` if the intermediate certificate chain exceeded the 16 KB encoding limit and was omitted from `cf.tls_client_auth.cert_chain_rfc9440`.
+    description: |-
+      When `true`, [`cf.tls_client_auth.cert_chain_rfc9440`](/ruleset-engine/rules-language/fields/reference/cf.tls_client_auth.cert_chain_rfc9440/) will be empty. This occurs when a client presents an unusually deep or large certificate chain.
+
+      This field is only filled in if the request includes a client certificate for [mTLS authentication](/ssl/client-certificates/enable-mtls/).
+
   - name: cf.tls_client_extensions_sha1
     data_type: String
     categories: [Request, SSL/TLS]
@@ -838,6 +944,107 @@ entries:
     example_value: |-
       "TLSv1.2"
 
+  - name: cf.edge.client_tcp
+    data_type: Boolean
+    categories: [Request]
+    keywords: [request, tcp, network, client]
+    summary: Indicates if the request was made over TCP.
+    example_value: |-
+      true
+
+  - name: cf.edge.l4.delivery_rate
+    data_type: Integer
+    categories: [Request]
+    keywords:
+      [request, l4, delivery rate, bandwidth, network, performance, transport]
+    summary: The most recent data delivery rate estimate for the client connection, in bytes per second.
+    description: |-
+      This metric reflects the rate at which data is being successfully delivered over the connection.
+
+      Returns `0` when L4 statistics are not available for the request.
+    example_value: |-
+      123456
+    example_block: |-
+      # Match requests where the delivery rate is below 100 KB/s
+      cf.edge.l4.delivery_rate < 100000
+
+  - name: cf.timings.client_tcp_rtt_msec
+    data_type: Number
+    categories: [Request]
+    keywords: [request, timing, tcp, rtt, performance, latency]
+    summary: The smoothed TCP round-trip time (RTT) between Cloudflare and the client in milliseconds.
+    description: |-
+      This field is only populated for TCP (HTTP/1, HTTP/2) connections. For QUIC connections, the value is `0`.
+    example_value: |-
+      20
+    example_block: |-
+      # Match requests over TCP where the RTT exceeds 200 ms
+      cf.timings.client_quic_rtt_msec > 200
+
+  - name: cf.timings.client_quic_rtt_msec
+    data_type: Integer
+    categories: [Request]
+    keywords: [request, timing, quic, rtt, performance, latency, http3]
+    summary: The smoothed QUIC round-trip time (RTT) between Cloudflare and the client in milliseconds.
+    description: |-
+      This field is only populated for QUIC (HTTP/3) connections. For TCP connections, the value is `0`.
+    example_value: |-
+      42
+    example_block: |-
+      # Match requests over QUIC where the RTT exceeds 200 ms
+      cf.timings.client_quic_rtt_msec > 200
+
+  - name: cf.timings.edge_msec
+    data_type: Integer
+    categories: [Request]
+    keywords: [request, timing, edge, performance]
+    summary: The time spent processing a request within the Cloudflare global network in milliseconds.
+    description: |-
+      The value corresponds to the time interval between when the Cloudflare edge server accepted the HTTP request headers for processing and just before the HTTP response headers were available to be sent to the client.
+
+      The value does not include:
+        - The time spent forwarding the request to the origin server (refer to [`cf.timings.origin_ttfb_msec`](/ruleset-engine/rules-language/fields/reference/cf.timings.origin_ttfb_msec/)).
+        - The network transfer time to the client.
+    example_value: |-
+      28
+    example_block: |-
+      # Matches requests where Cloudflare's edge processing time was greater than 500 milliseconds
+      cf.timings.edge_msec > 500
+
+  - name: cf.timings.origin_ttfb_msec
+    data_type: Integer
+    categories: [Request]
+    keywords: [request, timing, ttfb, performance, origin, latency]
+    summary: The round-trip time (RTT) between the Cloudflare global network and the origin server in milliseconds.
+    description: |-
+      This field provides insight into origin server latency. It represents the Time to First Byte (TTFB) from the perspective of the Cloudflare edge server.
+
+      This metric includes both the network RTT and the time the origin server spent handling the request.
+
+      If the request was served from the Cloudflare CDN cache and the origin server was not reached, the value of this field will be `0`.
+    example_value: |-
+      150
+    example_block: |-
+      # Matches requests where the origin response time (TTFB) was greater than 2 seconds:
+      cf.timings.origin_ttfb_msec > 2000
+
+  - name: cf.timings.worker_msec
+    data_type: Integer
+    categories: [Request]
+    keywords: [request, timing, workers, performance, latency]
+    summary: The time spent executing a Cloudflare Worker in milliseconds.
+    description: |-
+      This field provides the wall-clock time that a Cloudflare Worker spent handling the request, measured in milliseconds.
+
+      Use this field to identify slow Worker executions, set up alerts for performance regressions, or add Worker execution time as a request header using Transform Rules for downstream observability.
+
+      If the request did not invoke a Worker, the value of this field will be `0`.
+    example_value: |-
+      12
+    example_block: |-
+      # Matches requests where the Worker execution time exceeded 500 milliseconds
+      cf.timings.worker_msec > 500
+
   - name: cf.waf.content_scan.has_obj
     data_type: Boolean
     categories: [Request]
@@ -854,6 +1061,9 @@ entries:
     summary: Indicates whether the request contains at least one content object.
     description: |-
       Requires a Cloudflare Enterprise plan with [malicious uploads detection](/waf/detections/malicious-uploads/).
+    example_block: |-
+      # Check if requests to a specific endpoint include any content objects
+      cf.waf.content_scan.has_obj and http.request.uri.path eq "/upload"
 
   - name: cf.waf.content_scan.has_malicious_obj
     data_type: Boolean
@@ -871,6 +1081,9 @@ entries:
     summary: Indicates whether the request contains at least one malicious content object.
     description: |-
       Requires a Cloudflare Enterprise plan with [malicious uploads detection](/waf/detections/malicious-uploads/).
+    example_block: |-
+      # Check if requests to a specific endpoint include any malicious content objects
+      cf.waf.content_scan.has_malicious_obj and http.request.uri.path eq "/upload"
 
   - name: cf.waf.content_scan.num_malicious_obj
     data_type: Integer
@@ -888,6 +1101,9 @@ entries:
     summary: The number of malicious content objects detected in the request (zero or greater).
     description: |-
       Requires a Cloudflare Enterprise plan with [malicious uploads detection](/waf/detections/malicious-uploads/).
+    example_block: |-
+      # Check if requests to a specific endpoint contain more than two malicious content objects
+      cf.waf.content_scan.num_malicious_obj > 2 and http.request.uri.path eq "/upload"
 
   - name: cf.waf.content_scan.has_failed
     data_type: Boolean
@@ -902,9 +1118,10 @@ entries:
         visitor,
       ]
     plan_info_label: Enterprise add-on
-    summary: Indicates whether the file scanner was unable to scan all the content objects detected in the request.
+    summary: Indicates whether the file scanner was unable to scan any of the content objects detected in the request.
     description: |-
       Requires a Cloudflare Enterprise plan with [malicious uploads detection](/waf/detections/malicious-uploads/).
+
   - name: cf.waf.content_scan.num_obj
     data_type: Integer
     categories: [Request]
@@ -921,6 +1138,9 @@ entries:
     summary: The number of content objects detected in the request (zero or greater).
     description: |-
       Requires a Cloudflare Enterprise plan with [malicious uploads detection](/waf/detections/malicious-uploads/).
+    example_block: |-
+      # Check if requests to a specific endpoint contain more than two content objects
+      cf.waf.content_scan.num_obj > 2 and http.request.uri.path eq "/upload"
 
   - name: cf.waf.content_scan.obj_sizes
     data_type: Array<Integer>
@@ -938,6 +1158,9 @@ entries:
     summary: An array of file sizes in bytes, in the order the content objects were detected in the request.
     description: |-
       Requires a Cloudflare Enterprise plan with [malicious uploads detection](/waf/detections/malicious-uploads/).
+    example_block: |-
+      # Check if requests to a specific endpoint contain any content objects larger than 500 KB (512,000 bytes)
+      any(cf.waf.content_scan.obj_sizes[*] > 512000) and http.request.uri.path eq "/upload"
 
   - name: cf.waf.content_scan.obj_types
     data_type: Array<String>
@@ -957,6 +1180,9 @@ entries:
       If Cloudflare cannot determine the file type of a content object, the corresponding value in the `obj_types` array will be `application/octet-stream`.
 
       Requires a Cloudflare Enterprise plan with [malicious uploads detection](/waf/detections/malicious-uploads/).
+    example_block: |-
+      # Check if requests to a specific endpoint contain content objects other than PDFs
+      any(cf.waf.content_scan.obj_types[*] != "application/pdf") and http.request.uri.path eq "/upload"
 
   - name: cf.waf.content_scan.obj_results
     data_type: Array<String>
@@ -976,6 +1202,9 @@ entries:
       The possible values are: `clean`, `suspicious`, `infected`, and `not scanned`.
 
       Requires a Cloudflare Enterprise plan with [malicious uploads detection](/waf/detections/malicious-uploads/).
+    example_block: |-
+      # Check if requests to a specific endpoint contain any suspicious or infected content objects
+      any(cf.waf.content_scan.obj_results[*] in {"suspicious" "infected"}) and http.request.uri.path eq "/upload"
 
   - name: cf.waf.score
     data_type: Number
@@ -984,6 +1213,8 @@ entries:
     plan_info_label: Enterprise
     summary: A global score from 1–99 that combines the score of each WAF attack vector into a single score.
     description: |-
+      The special score `100` indicates that Cloudflare did not score the request.
+
       This is the standard [WAF attack score](/waf/detections/attack-score/) to detect variants of attack patterns.
 
       Requires a Cloudflare Enterprise plan. You must also enable [attack score detection](/waf/detections/attack-score/).
@@ -1120,7 +1351,7 @@ entries:
     description: |-
       When a prompt is not present, the other LLM-related fields will have default values.
 
-      Requires a Cloudflare Enterprise plan. You must also enable [Firewall for AI](/waf/detections/firewall-for-ai/).
+      Requires a Cloudflare Enterprise plan. You must also enable [AI Security for Apps](/waf/detections/ai-security-for-apps/).
 
   - name: cf.llm.prompt.pii_detected
     data_type: Boolean
@@ -1131,7 +1362,7 @@ entries:
     description: |-
       Equivalent to checking if the [`cf.llm.prompt.pii_categories`](/ruleset-engine/rules-language/fields/reference/cf.llm.prompt.pii_categories/) field is not empty.
 
-      Requires a Cloudflare Enterprise plan. You must also enable [Firewall for AI](/waf/detections/firewall-for-ai/).
+      Requires a Cloudflare Enterprise plan. You must also enable [AI Security for Apps](/waf/detections/ai-security-for-apps/).
 
   - name: cf.llm.prompt.pii_categories
     data_type: Array<String>
@@ -1184,12 +1415,96 @@ entries:
       `IN_PASSPORT`               | Indian Passport Number
       `FI_PERSONAL_IDENTITY_CODE` | Finnish Personal Identity Code
 
-      The categories list is based on the [list of PII entities supported by Presidio](https://microsoft.github.io/presidio/supported_entities/). Presidio is the data protection and de-identification SDK used in Firewall for AI.
+      The categories list is based on the [list of PII entities supported by Presidio](https://microsoft.github.io/presidio/supported_entities/). Presidio is the data protection and de-identification SDK used in AI Security for Apps.
 
-      Requires a Cloudflare Enterprise plan. You must also enable [Firewall for AI](/waf/detections/firewall-for-ai/).
+      Requires a Cloudflare Enterprise plan. You must also enable [AI Security for Apps](/waf/detections/ai-security-for-apps/).
     example_block: |-
       # Matches requests where PII categorized as "EMAIL_ADDRESS" or "IBAN_CODE" was detected:
       (cf.llm.prompt.pii_detected and any(cf.llm.prompt.pii_categories[*] in {"EMAIL_ADDRESS" "IBAN_CODE"}))
+
+  - name: cf.llm.prompt.unsafe_topic_detected
+    data_type: Boolean
+    categories: [Request]
+    keywords: [request, cloudflare, ai, client, visitor]
+    plan_info_label: Enterprise
+    summary: Indicates whether the incoming request includes any unsafe topic category in the LLM prompt.
+    description: |-
+      Equivalent to checking if the [`cf.llm.prompt.unsafe_topic_categories`](/ruleset-engine/rules-language/fields/reference/cf.llm.prompt.unsafe_topic_categories/) field is not empty.
+
+      Requires a Cloudflare Enterprise plan. You must also enable [AI Security for Apps](/waf/detections/ai-security-for-apps/).
+
+  - name: cf.llm.prompt.unsafe_topic_categories
+    data_type: Array<String>
+    categories: [Request]
+    keywords: [request, cloudflare, ai, client, visitor]
+    plan_info_label: Enterprise
+    summary: Array of string values with the type of unsafe topics detected in the LLM prompt.
+    description: |-
+      The possible values are the following:
+
+      | Value | Category name             | Description                                                                                                       |
+      | ----- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+      | `S1`  | Violent crimes            | Violent crimes against people or animals.                                                                         |
+      | `S2`  | Non-violent crimes        | Non-violent offenses such as fraud, theft, drug creation, or hacking.                                             |
+      | `S3`  | Sex-related crimes        | Sex-related crimes, including trafficking, assault, and harassment.                                               |
+      | `S4`  | Child sexual exploitation | Sexual exploitation of children.                                                                                  |
+      | `S5`  | Defamation                | False statements that are likely to damage a living person's reputation.                                          |
+      | `S6`  | Specialized advice        | Specialized financial, medical, or legal advice, or misrepresent dangerous things as safe.                        |
+      | `S7`  | Privacy                   | Sensitive, nonpublic personal information that could endanger an individual.                                      |
+      | `S8`  | Intellectual property     | Violate a third party's intellectual property rights.                                                             |
+      | `S9`  | Indiscriminate weapons    | Creation of indiscriminate weapons like chemical, biological, or nuclear arms.                                    |
+      | `S10` | Hate                      | Demean or dehumanize people based on their race, religion, sexual orientation, or other personal characteristics. |
+      | `S11` | Suicide and self-harm     | Encourage or endorse suicide, self-injury, or disordered eating.                                                  |
+      | `S12` | Sexual content            | Erotic content.                                                                                                   |
+      | `S13` | Elections                 | False information about the time, place, or manner of voting in elections.                                        |
+      | `S14` | Code interpreter abuse    | Misuse of code execution capabilities.                                                                            |
+
+      Requires a Cloudflare Enterprise plan. You must also enable [AI Security for Apps](/waf/detections/ai-security-for-apps/).
+    example_block: |-
+      # Matches requests where an unsafe topic categorized as "S2" (Non-violent crimes) or "S10" (Hate) was detected in the LLM prompt:
+      (cf.llm.prompt.unsafe_topic_detected and any(cf.llm.prompt.unsafe_topic_categories[*] in {"S2" "S10"}))
+
+  - name: cf.llm.prompt.injection_score
+    data_type: Number
+    categories: [Request]
+    keywords: [request, cloudflare, ai, client, visitor]
+    plan_info_label: Enterprise
+    summary: A score from 1–99 that represents the likelihood that the LLM prompt in the request is trying to perform a prompt injection attack.
+
+    description: |-
+      A low score (for example, below `20`) indicates that there is a high probability that the LLM prompt in the request is trying to perform a prompt injection attack.
+
+      The special score `100` indicates that Cloudflare did not score the request.
+
+      Requires a Cloudflare Enterprise plan. You must also enable [AI Security for Apps](/waf/detections/ai-security-for-apps/).
+
+  - name: cf.llm.prompt.token_count
+    data_type: Number
+    categories: [Request]
+    keywords: [request, cloudflare, ai, client, visitor]
+    plan_info_label: Enterprise
+    summary: An estimated token count for the LLM prompt in the request.
+    description: |-
+      The count is calculated using a general-purpose tokenizer and may not exactly match the count reported by your LLM provider.
+
+      Requires a Cloudflare Enterprise plan. You must also enable [AI Security for Apps](/waf/detections/ai-security-for-apps/).
+    example_block: |-
+      # Matches requests where the estimated token count exceeds 4,000:
+      (cf.llm.prompt.token_count gt 4000)
+
+  - name: cf.llm.prompt.custom_topic_categories
+    data_type: Map<Number>
+    categories: [Request]
+    keywords: [request, cloudflare, ai, client, visitor]
+    plan_info_label: Enterprise
+    summary: A map of custom topic labels to relevance scores (1–99) for the LLM prompt in the request.
+    description: |-
+      Lower scores indicate the prompt is more relevant to that topic. Only populated when [custom topics](/waf/detections/ai-security-for-apps/unsafe-topics/#custom-topics) are configured.
+
+      Requires a Cloudflare Enterprise plan. You must also enable [AI Security for Apps](/waf/detections/ai-security-for-apps/).
+    example_block: |-
+      # Matches requests where the prompt is highly relevant to the "competitors" custom topic:
+      (cf.llm.prompt.custom_topic_categories["competitors"] lt 30)
 
   - name: cf.worker.upstream_zone
     data_type: String
@@ -1633,7 +1948,7 @@ entries:
     data_type: String
     categories: [Request, Body, Raw fields]
     keywords: [request, body, raw, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: The unaltered HTTP request body.
     description: |-
       When the value of [`http.request.body.truncated`](/ruleset-engine/rules-language/fields/reference/http.request.body.truncated/) is `true`, the return value may be truncated.
@@ -1642,35 +1957,35 @@ entries:
       - **Whitespace**: Preserved
       - **Non-ASCII**: Preserved
 
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
 
   - name: http.request.body.truncated
     data_type: Boolean
     categories: [Request, Body]
     keywords: [request, body, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: Indicates whether the HTTP request body is truncated.
     description: |-
       When `true`, `http.request.body.*` fields may not contain all of the HTTP request body.
 
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
 
   - name: http.request.body.size
     data_type: Number
     categories: [Request, Body]
     keywords: [request, body, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: The total size of the HTTP request body (in bytes).
     description: |-
       This field may have a value larger than the one returned by `len(http.request.body.raw)`, since the [`http.request.body.raw`](/ruleset-engine/rules-language/fields/reference/http.request.body.raw/) field only considers the request body up to a maximum size that varies according to your Cloudflare plan.
 
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
 
   - name: http.request.body.form
     data_type: Map<Array<String>>
     categories: [Request, Body]
     keywords: [request, body, form, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: The HTTP request body of a form represented as a Map (or associative array).
     description: |-
       Populated when the `Content-Type` header is `application/x-www-form-urlencoded`.
@@ -1685,7 +2000,7 @@ entries:
       - **Whitespace**: Preserved
       - **Non-ASCII**: Preserved
 
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
     example_value: |-
       {username": ["admin"]}
     example_block: |-
@@ -1695,7 +2010,7 @@ entries:
     data_type: Array<String>
     categories: [Request, Body]
     keywords: [request, body, form, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: The names of the form fields in an HTTP request.
     description: |-
       Populated when the `Content-Type` header is `application/x-www-form-urlencoded`.
@@ -1710,7 +2025,7 @@ entries:
       - **Whitespace**: Preserved
       - **Non-ASCII**: Preserved
 
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
     example_value: |-
       ["username"]
     example_block: |-
@@ -1720,7 +2035,7 @@ entries:
     data_type: Array<String>
     categories: [Request, Body]
     keywords: [request, body, form, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: The values of the form fields in an HTTP request.
     description: |-
       Populated when the `Content-Type` header is `application/x-www-form-urlencoded`.
@@ -1735,7 +2050,7 @@ entries:
       - **Whitespace**: Preserved
       - **Non-ASCII**: Preserved
 
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
     example_value: |-
       ["admin"]
     example_block: |-
@@ -1757,10 +2072,10 @@ entries:
     data_type: Map<Array<String>>
     categories: [Request, Body]
     keywords: [request, body, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: A Map (or associative array) representation of multipart names to multipart values in the request body.
     description: |-
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
     example_value: |-
       {"username": ["alice_doe"], "role": ["editor"], "picture": [<binary_content_of_file>]}
     example_block: |-
@@ -1770,10 +2085,10 @@ entries:
     data_type: Array<Array<String>>
     categories: [Request, Body]
     keywords: [request, body, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: List of multipart names for every part in the multipart body.
     description: |-
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
     example_value: |-
       [["username"], ["picture"]]
     example_block: |-
@@ -1783,10 +2098,10 @@ entries:
     data_type: Array<String>
     categories: [Request, Body]
     keywords: [request, body, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: List of multipart values for every part in the multipart body.
     description: |-
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
     example_value: |-
       ["alice_doe", <binary_content_of_file>]
     example_block: |-
@@ -1796,10 +2111,10 @@ entries:
     data_type: Array<Array<String>>
     categories: [Request, Body]
     keywords: [request, body, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: List of `Content-Type` headers for each part in the multipart body.
     description: |-
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
     example_value: |-
       [["text/plain"], ["image/jpeg"]]
     example_block: |-
@@ -1809,10 +2124,10 @@ entries:
     data_type: Array<Array<String>>
     categories: [Request, Body]
     keywords: [request, body, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: List of `Content-Disposition` headers for each part in the multipart body.
     description: |-
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
     example_value: |-
       [["form-data; name=\"username\""], ["form-data; name=\"picture\""]]
     example_block: |-
@@ -1822,10 +2137,10 @@ entries:
     data_type: Array<Array<String>>
     categories: [Request, Body]
     keywords: [request, body, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: List of `Content-Transfer-Encoding` headers for each part in the multipart body.
     description: |-
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
     example_value: |-
       [["quoted-printable"], ["base64"]]
     example_block: |-
@@ -1835,10 +2150,10 @@ entries:
     data_type: Array<Array<String>>
     categories: [Request, Body]
     keywords: [request, body, client, visitor]
-    plan_info_label: Enterprise add-on
+    plan_info_label: Enterprise
     summary: List of filenames for each part in the multipart body.
     description: |-
-      Requires a Cloudflare Enterprise plan with a paid add-on.
+      Requires a Cloudflare Enterprise plan.
     example_value: |-
       [["file1.txt"], ["photo.jpg"]]
     example_block: |-
@@ -1849,6 +2164,8 @@ entries:
     categories: [Response]
     keywords: [response]
     summary: The HTTP status code returned to the client, either set by a Cloudflare product or returned by the origin server.
+    description: |-
+      **Note**: The availability of HTTP response fields depends on the exact Cloudflare feature and your Cloudflare plan.
     example_value: |-
       403
 
@@ -1863,6 +2180,8 @@ entries:
       - **Decoding**: No decoding performed
       - **Whitespace**: Preserved
       - **Non-ASCII**: Preserved
+
+      **Note**: The availability of HTTP response fields depends on the exact Cloudflare feature and your Cloudflare plan.
     example_value: |-
       {"server": ["nginx"]}
     example_block: |-
@@ -1883,6 +2202,8 @@ entries:
       - **Decoding**: No decoding performed
       - **Whitespace**: Preserved
       - **Non-ASCII**: Preserved
+
+      **Note**: The availability of HTTP response fields depends on the exact Cloudflare feature and your Cloudflare plan.
     example_value: |-
       ["content-type"]
     example_block: |-
@@ -1903,6 +2224,8 @@ entries:
       - **Decoding**: No decoding performed
       - **Whitespace**: Preserved
       - **Non-ASCII**: Preserved
+
+      **Note**: The availability of HTTP response fields depends on the exact Cloudflare feature and your Cloudflare plan.
     example_value: |-
       Example 1: ["application/json"]
       Example 2: ["This header value is longer than 10 bytes"]
@@ -1932,6 +2255,7 @@ entries:
       | `text/HTML`                             | `"text/html"`       |
       | `text/html; charset=utf-8; other=value` | `"text/html"`       |
 
+      **Note**: The availability of HTTP response fields depends on the exact Cloudflare feature and your Cloudflare plan.
   - name: cf.response.1xxx_code
     data_type: Integer
     categories: [Response]

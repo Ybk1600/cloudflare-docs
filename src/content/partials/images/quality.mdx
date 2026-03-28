@@ -8,25 +8,27 @@ Specifies quality for images in JPEG, WebP, and AVIF formats. The quality is in 
 
 We also allow setting one of the perceptual quality levels `high|medium-high|medium-low|low`
 
+**Alias:** `q`
+
 <Tabs>
   <TabItem label="URL format">
-    ```js
+    ```txt
     quality=50
-    
+
     OR
-    
+
     quality=low
     ```
   </TabItem>
   <TabItem label="URL format alias">
-  ```js
+  ```txt
   q=50
 
 OR
 
 q=medium-high
 
-````
+```
 </TabItem>
 <TabItem label="Workers">
 ```js
@@ -35,7 +37,7 @@ cf: {image: {quality: 50}}
 OR
 
 cf: {image: {quality: "high"}}
-````
+```
 
   </TabItem>
 </Tabs>

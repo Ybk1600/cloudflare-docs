@@ -1,5 +1,5 @@
 ---
-import { z } from "astro:schema";
+import { z } from "astro/zod";
 import { marked } from "marked";
 import { indexPlans } from "~/util/plans";
 
@@ -43,7 +43,7 @@ const entries = Object.entries(plan);
 							)}
 						/>
 						{value.title !== "Availability" && value.summary && (
-							<p>{value.summary}</p>
+							<Fragment set:html={marked.parse(value.summary)} />
 						)}
 						<ul>
 							{value.free !== undefined && (

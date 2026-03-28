@@ -33,7 +33,7 @@ The following features and protocols are not supported by Regional Services and 
 
 * [ICMP](https://www.cloudflare.com/learning/ddos/glossary/internet-control-message-protocol-icmp/)
 * [Encrypted Client Hello (ECH)](/ssl/edge-certificates/ech/)
-* [Orange-to-Orange (O2O)](/cloudflare-for-platforms/cloudflare-for-saas/saas-customers/how-it-works/)
+* [O2O](/cloudflare-for-platforms/cloudflare-for-saas/saas-customers/how-it-works/)
 * [Onion Routing (Tor)](/network/onion-routing/)
 
 Since Regional Services leverages Spectrum in the background, [Spectrum limitations](/spectrum/reference/limitations/) apply.
@@ -44,7 +44,7 @@ Regional Services does not apply to [Subrequests](/workers/platform/limits/#subr
 
 There are certain limitations and caveats when using Customer Metadata Boundary.
 
-Specifically most of the Zone Analytics & Logs UI Tabs will be showing up as empty, when configuring Customer Metadata Boundary to EU only. It is recommended to use the UI [Security Analytics](/waf/analytics/security-analytics/) instead, or the [HTTP request](/logs/reference/log-fields/zone/http_requests/) logs via [Logpush](/logs/about/).
+Specifically most of the Zone Analytics & Logs UI Tabs will be showing up as empty, when configuring Customer Metadata Boundary to EU only. It is recommended to use the UI [Security Analytics](/waf/analytics/security-analytics/) instead, or the [HTTP request](/logs/logpush/logpush-job/datasets/zone/http_requests/) logs via [Logpush](/logs/logpush/).
 
 To configure Customer Metadata Boundary to EU only, you must disable Log Retention for all zones within your account. Log Retention is a legacy feature of [Logpull](/logs/logpull/).
 

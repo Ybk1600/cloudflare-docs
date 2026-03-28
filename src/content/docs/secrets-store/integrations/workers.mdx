@@ -1,12 +1,14 @@
 ---
-title: Use Secrets Store with Workers
+title: Workers integration
 pcx_content_type: tutorial
 sidebar:
   order: 1
-  label: Use with Workers
+  label: Workers
+description: >-
+  Cloudflare Secrets Store is a secure, centralized location in which account-level secrets are stored and managed. The secrets are securely encrypted and stored across all Cloudflare data centers.
 ---
 
-import { WranglerConfig, Tabs, TabItem } from "~/components";
+import { WranglerConfig, Tabs, TabItem, APIRequest, DashButton } from "~/components";
 
 [Cloudflare Secrets Store](/secrets-store/) is a secure, centralized location in which account-level secrets are stored and managed. The secrets are securely encrypted and stored across all Cloudflare data centers.
 
@@ -21,7 +23,7 @@ This is different from Workers [Variables and Secrets](/workers/configuration/se
 
 - You should also have a store created under the **Secrets Store** tab on the Dashboard. The first store in your account is created automatically when a user with [Super Administrator or Secrets Store Admin role](/secrets-store/access-control/) interacts with it.
 
-		- If no store exists in your account yet and you have the necessary permissions, you can use the [Wrangler command](/workers/wrangler/commands/#secrets-store-store) `secrets-store store create <name> --remote` to create your first store.
+		- If no store exists in your account yet and you have the necessary permissions, you can use the [Wrangler command](/workers/wrangler/commands/secrets-store/#secrets-store-store) `secrets-store store create <name> --remote` to create your first store.
 
 :::caution[Local development mode]
 This guide assumes you are working in production. To use Secrets Store locally, you must use `secrets-store secret` [Wrangler commands](/workers/wrangler/commands/) without the `--remote` flag.
@@ -36,7 +38,7 @@ You may also add account secrets directly from the Workers settings on the dashb
 :::
 <Tabs> <TabItem label="Wrangler">
 
-Use the [Wrangler command](/workers/wrangler/commands/#secrets-store-secret) `secrets-store secret create`.
+Use the [Wrangler command](/workers/wrangler/commands/secrets-store/#secrets-store-secret) `secrets-store secret create`.
 
 To use the following example, replace the store ID and secret name by your actual data. You can find and copy the store ID from the [Secrets Store tab](https://dash.cloudflare.com/?to=/:account/secrets-store/) on the dashboard or use `wrangler secrets-store store list`.
 
@@ -56,37 +58,39 @@ npx wrangler secrets-store secret create <STORE_ID> --name MY_SECRET_NAME --scop
 
 </TabItem> <TabItem label="Dashboard">
 
-1. Log in to the [Cloudflare dashboard](https://dash.cloudflare.com/) and select your account.
-2. Go to **Secrets Store** and select **Create secret**.
+1. In the Cloudflare dashboard, go to the **Secrets Store** page.
+
+   <DashButton url="/?to=/:account/secrets-store" />
+
+2. Select **Create secret**.
 3. Fill in the required fields, choosing _Workers_ as the **Permission scope**. Once the secret is saved, the secret value will no longer be available for viewing.
 4. (Optional) Select **Add additional secret** to create more than one secret at a time.
 5. Select **Save** to confirm.
 
 </TabItem> <TabItem label="API">
 
-You can find and copy the store ID from the [Secrets Store tab](https://dash.cloudflare.com/?to=/:account/secrets-store/) on the dashboard or use the [Wrangler command](/workers/wrangler/commands/#secrets-store-store). Also, make sure your secret `name` does not contain spaces.
+You can find and copy the store ID from the [Secrets Store tab](https://dash.cloudflare.com/?to=/:account/secrets-store/) on the dashboard or use the [Wrangler command](/workers/wrangler/commands/secrets-store/#secrets-store-store). Also, make sure your secret `name` does not contain spaces.
 
 Refer to [Secrets Store API](/api/resources/secrets_store/) for the full API documentation.
 
-```bash
-curl https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/secrets_store/stores/$STORE_ID/secrets \
---header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
---header "Content-Type: application/json" \
---data '[
-  {
-    "name":"<MY_SECRET_NAME>",
-    "value":"<SECRET_VALUE>",
-    "scopes":["workers"],
-    "comment":""
-	},
-  {
-		"name":"<MY_SECRET_NAME_2>",
-    "value":"<SECRET_VALUE>",
-    "scopes":["workers"],
-    "comment":""
-  }
-]'
-```
+<APIRequest
+  path="/accounts/{account_id}/secrets_store/stores/{store_id}/secrets"
+	method="POST"
+	json={[
+		{
+			"name":"<MY_SECRET_NAME>",
+			"value":"<SECRET_VALUE>",
+			"scopes":["workers"],
+			"comment":""
+			},
+		{
+			"name":"<MY_SECRET_NAME_2>",
+			"value":"<SECRET_VALUE>",
+			"scopes":["workers"],
+			"comment":""
+			}
+]}
+/>
 
 </TabItem> </Tabs>
 
@@ -109,11 +113,17 @@ To bind an account secret to your Worker, you must have one of the following [ro
 
 <WranglerConfig>
 
-```toml
-main = "./src/index.js"
-secrets_store_secrets = [
-  { binding = "<BINDING_VARIABLE>", store_id= "<STORE_ID>", secret_name = "<MY_SECRET_NAME>" }
-]
+```jsonc
+{
+	"main": "./src/index.js",
+	"secrets_store_secrets": [
+		{
+			"binding": "<BINDING_VARIABLE>",
+			"store_id": "<STORE_ID>",
+			"secret_name": "<MY_SECRET_NAME>"
+		}
+	]
+}
 ```
 
 </WranglerConfig>
@@ -121,8 +131,11 @@ secrets_store_secrets = [
 
 ### Via Dashboard
 
-1. Log in to the [Cloudflare dashboard](https://dash.cloudflare.com/) and select your account.
-2. Go to **Workers & Pages** and select a Workers application.
+1. In the Cloudflare dashboard, go to **Workers & Pages**.
+
+   <DashButton url="/?to=/:account/workers-and-pages" />
+
+2. Select a Workers application.
 3. Go to **Settings** > **Bindings** and select **Add**.
 4. On the **Add a resource binding** side panel, choose **Secrets Store**.
 5. Fill in the required fields:

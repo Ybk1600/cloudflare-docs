@@ -3,13 +3,14 @@ import Default from "@astrojs/starlight/components/Head.astro";
 import { differenceInCalendarDays } from "date-fns";
 import "tippy.js/dist/tippy.css";
 
-import { getEntry } from "astro:content";
+import { getEntry, getEntries } from "astro:content";
 import { getOgImage } from "~/util/og";
+import { formatContentType } from "~/util/content-type";
 import type { CollectionEntry } from "astro:content";
 
 const DEFAULT_TITLE_DELIMITER = "|";
-const NOINDEX_PRODUCTS = ["email-security", "style-guide", "security"];
-const CHATBOT_DEPRIORITIZE_PRODUCTS = ["firewall"];
+const NOINDEX_PRODUCTS = ["email-security"];
+const CHATBOT_DEPRIORITIZE_PRODUCTS = ["firewall", "style-guide"];
 
 const currentSection = Astro.url.pathname.split("/")[1].replaceAll(".", "");
 
@@ -25,56 +26,81 @@ const shouldNoIndex =
 
 const shouldChatbotDeprioritize =
 	CHATBOT_DEPRIORITIZE_PRODUCTS.includes(currentSection) ||
+	frontmatter.sidebar.group?.hideIndex ||
+	frontmatter.sidebar.hidden ||
 	frontmatter.chatbot_deprioritize;
 
+// if not a top-level page, add metadata values from src/content/directory/ entries
 if (currentSection) {
-	const product = await getEntry("products", currentSection);
+	// For changelog pages there is no directory entry for "changelog" itself; skip
+	// the lookup to avoid spurious "Entry directory → changelog was not found" warnings.
+	// The actual product is resolved below from frontmatter.products[0].
+	let product =
+		currentSection !== "changelog"
+			? await getEntry("directory", currentSection)
+			: undefined;
+	// if entry for changelog, grab the first product value (which corresponds to the folder the entry is in) and use as the primary "product"
+	if (currentSection === "changelog") {
+		const originalEntry = Astro.locals.starlightRoute.originalEntry as
+			| CollectionEntry<"changelog">
+			| undefined;
+		if (originalEntry && originalEntry.data.products.length > 0) {
+			const primaryProductRef = originalEntry.data.products[0];
+			product = await getEntry("directory", primaryProductRef.id);
+			// product = await getEntry(originalEntry.data.products[0]);
+		}
+		["pcx_content_type", "algolia_content_type"].map((name) => {
+			metaTags.push({
+				name,
+				content: formatContentType("changelog-entry"),
+			});
+		});
+	}
 
 	if (product) {
-		if (product.data.meta.title) {
-			const titleIdx = head.findIndex((x) => x.tag === "title");
+		let productMetaName = product.data.meta.title
+			? product.data.meta.title
+			: "Cloudflare Docs";
 
-			let title: string;
-
-			if (titleIdx !== -1) {
-				const existingTitle = head[titleIdx].content?.split(
-					` ${DEFAULT_TITLE_DELIMITER} `,
-				)[0];
-				title = `${existingTitle} · ${product.data.meta.title}`;
-
-				head[titleIdx] = {
-					tag: "title",
-					content: title,
-				};
-			} else {
-				title = `${frontmatter.title} · ${product.data.meta.title}`;
-				head.push({
-					tag: "title",
-					content: title,
-				});
-			}
-
-			metaTags.push({
-				property: "og:title",
-				content: title,
-			});
+		if (currentSection === "changelog") {
+			productMetaName = "Changelog";
 		}
 
-		if (product.data.product.title) {
+		const titleIdx = head.findIndex((x) => x.tag === "title");
+		let title: string;
+
+		// Prefer the title set via frontmatter.head.title. If not, grab the regular frontmatter title value.
+		const existingTitle = head[titleIdx].content
+			? head[titleIdx].content?.split(` ${DEFAULT_TITLE_DELIMITER} `)[0]
+			: frontmatter.title;
+
+		title = `${existingTitle} · ${productMetaName}`;
+
+		head[titleIdx] = {
+			tag: "title",
+			content: title,
+		};
+
+		metaTags.push({
+			property: "og:title",
+			content: title,
+		});
+
+		if (product.data.entry.title) {
 			["pcx_product", "algolia_product_filter"].map((name) => {
 				metaTags.push({
 					name,
-					content: product.data.product.title,
+					content: product.data.entry.title,
 				});
 			});
 		}
 
-		if (product.data.product.group) {
+		if (product.data.entry.group) {
 			head.push({
 				tag: "meta",
 				attrs: {
 					name: "pcx_content_group",
-					content: product.data.product.group,
+					content: product.data.entry.group,
 				},
 			});
 		}
@@ -110,6 +136,12 @@ if (
 
 	if (existingOpenGraphTag !== -1) {
 		head[existingOpenGraphTag].attrs!.content = frontmatter.description;
+	} else {
+		// og:description not added by Starlight; add it explicitly
+		metaTags.push({
+			property: "og:description",
+			content: frontmatter.description as string,
+		});
 	}
 
 	metaTags.push({
@@ -120,17 +152,24 @@ if (
 
 if (frontmatter.pcx_content_type) {
 	["pcx_content_type", "algolia_content_type"].map((name) => {
+		const contentType = frontmatter.pcx_content_type;
+		const updatedName = contentType ? formatContentType(contentType) : "";
 		metaTags.push({
 			name,
-			content: frontmatter.pcx_content_type as string,
+			content: updatedName,
 		});
 	});
 }
 
 if (frontmatter.products) {
+	const additionalProducts = await getEntries(frontmatter.products);
+	const additionalProductsNames = additionalProducts.map(
+		(product) => product.data.name,
+	);
+
 	metaTags.push({
 		name: "pcx_additional_products",
-		content: frontmatter.products.toString(),
+		content: additionalProductsNames.toString(),
 	});
 }
 
@@ -150,8 +189,11 @@ if (lastUpdated) {
 	});
 }
 
-if (frontmatter.updated) {
-	const daysBetween = differenceInCalendarDays(new Date(), frontmatter.updated);
+if (frontmatter.reviewed) {
+	const daysBetween = differenceInCalendarDays(
+		new Date(),
+		frontmatter.reviewed,
+	);
 
 	metaTags.push({
 		name: "pcx_last_reviewed",
@@ -166,7 +208,10 @@ if (frontmatter.external_link) {
 	});
 }
 
-if (frontmatter.pcx_content_type === "changelog") {
+if (
+	frontmatter.pcx_content_type === "changelog" ||
+	currentSection === "changelog"
+) {
 	const href = new URL(entry.id.concat("/index.xml"), Astro.url.origin);
 
 	head.push({
@@ -200,6 +245,18 @@ head.push({
 		href: Astro.site + Astro.url.pathname.slice(1) + "index.md",
 	},
 });
+
+if (frontmatter.canonical) {
+	const canonicalHref = new URL(frontmatter.canonical, Astro.site).toString();
+	const canonicalIdx = head.findIndex(
+		({ tag, attrs }) => tag === "link" && attrs?.rel === "canonical",
+	);
+	if (canonicalIdx !== -1) {
+		head[canonicalIdx].attrs!.href = canonicalHref;
+	} else {
+		head.push({ tag: "link", attrs: { rel: "canonical", href: canonicalHref } });
+	}
+}
 
 metaTags.map((attrs) => {
 	head.push({

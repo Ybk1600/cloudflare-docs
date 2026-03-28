@@ -57,15 +57,9 @@ if (data.description) {
 	data.description = await generateDescription({ html });
 }
 
-if (data.updated) {
+if (data.reviewed) {
 	data.lastUpdated = undefined;
 }
 ---
 
 <Default set:html={html} />
-
-<style>
-	html:not([data-has-toc]) {
-		--sl-content-width: 67.5rem;
-	}
-</style>

@@ -1,6 +1,5 @@
 import { SELF } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
-import { XMLParser } from "fast-xml-parser";
 import { parse } from "node-html-parser";
 
 describe("Cloudflare Docs", () => {
@@ -12,19 +11,11 @@ describe("Cloudflare Docs", () => {
 			expect(await response.text()).toContain("Cloudflare Docs");
 		});
 
-		// Remove once the whacky double-slash rules get removed
-		it("responds with index.html at `//`", async () => {
-			const request = new Request("http://fakehost//");
-			const response = await SELF.fetch(request);
-			expect(response.status).toBe(200);
-			expect(await response.text()).toContain("Cloudflare Docs");
-		});
-
 		it("responds with 404.html at `/non-existent`", async () => {
 			const request = new Request("http://fakehost/non-existent");
 			const response = await SELF.fetch(request);
 			expect(response.status).toBe(404);
-			expect(await response.text()).toContain("Page not found.");
+			expect(await response.text()).toContain("Check the URL,");
 		});
 	});
 
@@ -33,49 +24,14 @@ describe("Cloudflare Docs", () => {
 			const request = new Request("http://fakehost/docs/");
 			const response = await SELF.fetch(request, { redirect: "manual" });
 			expect(response.status).toBe(301);
-			expect(response.headers.get("Location")).toBe("/products/");
+			expect(response.headers.get("Location")).toBe("/directory/");
 		});
 
 		it("redirects requests without a trailing slash", async () => {
 			const request = new Request("http://fakehost/docs");
 			const response = await SELF.fetch(request, { redirect: "manual" });
 			expect(response.status).toBe(301);
-			expect(response.headers.get("Location")).toBe("/products/");
-		});
-
-		it("redirects /changelog-next/ to /changelog/", async () => {
-			const request = new Request("http://fakehost/changelog-next/");
-			const response = await SELF.fetch(request, { redirect: "manual" });
-			expect(response.status).toBe(301);
-			expect(response.headers.get("Location")).toBe("/changelog/");
-		});
-
-		it("redirects /changelog-next/rss.xml to /changelog/rss.xml", async () => {
-			const request = new Request("http://fakehost/changelog-next/rss.xml");
-			const response = await SELF.fetch(request, { redirect: "manual" });
-
-			expect(response.status).toBe(301);
-			expect(response.headers.get("Location")).toBe("/changelog/rss.xml");
-		});
-
-		it("redirects /workers/index.html.md to /workers/index.md", async () => {
-			const request = new Request("http://fakehost/workers/index.html.md");
-			const response = await SELF.fetch(request, { redirect: "manual" });
-
-			expect(response.status).toBe(301);
-			expect(response.headers.get("Location")).toBe("/workers/index.md");
-		});
-
-		it("redirects /fundamentals/setup/manage-domains/remove-domain/index.md to /fundamentals/manage-domains/remove-domain/index.md", async () => {
-			const request = new Request(
-				"http://fakehost/fundamentals/setup/manage-domains/remove-domain/index.md",
-			);
-			const response = await SELF.fetch(request, { redirect: "manual" });
-
-			expect(response.status).toBe(301);
-			expect(response.headers.get("Location")).toBe(
-				"/fundamentals/manage-domains/remove-domain/index.md",
-			);
+			expect(response.headers.get("Location")).toBe("/directory/");
 		});
 	});
 
@@ -144,8 +100,6 @@ describe("Cloudflare Docs", () => {
 	});
 
 	describe("rss endpoints", () => {
-		const parser = new XMLParser();
-
 		describe("changelog", () => {
 			it("global", async () => {
 				const request = new Request("http://fakehost/changelog/rss/index.xml");
@@ -154,42 +108,16 @@ describe("Cloudflare Docs", () => {
 				expect(response.status).toBe(200);
 
 				const xml = await response.text();
-				const parsed = parser.parse(xml);
-				const { channel } = parsed.rss;
 
-				expect(channel.title).toBe("Cloudflare changelogs");
-
-				const item = channel.item.find(
-					(item: any) =>
-						item.title ===
-						"Access - New SAML and OIDC Fields and SAML transforms for Access for SaaS",
+				expect(xml).toContain("<title>Cloudflare changelogs</title>");
+				expect(xml).toContain(
+					"<title>Access - New SAML and OIDC Fields and SAML transforms for Access for SaaS</title>",
 				);
-
-				expect(item).toBeDefined();
-				expect(item.product).toBe("Access");
-				expect(item.category).toBe("Access");
-				expect(item.pubDate).toBe("Mon, 03 Mar 2025 06:00:00 GMT");
-			});
-
-			it("legacy product-specific", async () => {
-				const request = new Request("http://fakehost/waf/change-log/index.xml");
-				const response = await SELF.fetch(request);
-
-				expect(response.status).toBe(200);
-
-				const xml = await response.text();
-				const parsed = parser.parse(xml);
-				const { channel } = parsed.rss;
-
-				expect(channel.title).toBe("Changelog | WAF");
-
-				const item = channel.item.find(
-					(item: any) => item.title === "WAF - 2025-02-24",
+				expect(xml).toContain("<product>Access</product>");
+				expect(xml).toContain("<category>Access</category>");
+				expect(xml).toContain(
+					"<pubDate>Mon, 03 Mar 2025 00:00:00 GMT</pubDate>",
 				);
-
-				expect(item).toBeDefined();
-				expect(item.product).toBeUndefined();
-				expect(item.pubDate).toBe("Mon, 24 Feb 2025 00:00:00 GMT");
 			});
 		});
 	});
@@ -205,84 +133,22 @@ describe("Cloudflare Docs", () => {
 			expect(text).toContain("# Cloudflare Developer Documentation");
 		});
 
-		it("llms-full.txt", async () => {
-			const request = new Request("http://fakehost/llms-full.txt");
-			const response = await SELF.fetch(request);
+		it("index.md requests preserve markdown through redirects", async () => {
+			// /learning-paths/ redirects to /resources/ — an index.md request
+			// should redirect to /resources/index.md, not the HTML page.
+			const request = new Request("http://fakehost/learning-paths/index.md");
+			const response = await SELF.fetch(request, { redirect: "manual" });
 
-			expect(response.status).toBe(200);
-
-			const text = await response.text();
-			expect(text).toContain("URL: https://developers.cloudflare.com/");
-			expect(text).toContain('from "~/components"');
+			expect(response.status).toBe(301);
+			expect(response.headers.get("Location")).toBe("/resources/index.md");
 		});
 
-		it("product-specific llms-full.txt", async () => {
-			const request = new Request("http://fakehost/workers/llms-full.txt");
+		it("index.md requests for non-redirected paths pass through", async () => {
+			const request = new Request("http://fakehost/workers/index.md");
 			const response = await SELF.fetch(request);
 
-			expect(response.status).toBe(200);
-
-			const text = await response.text();
-			expect(text).toContain("URL: https://developers.cloudflare.com/");
-			expect(text).toContain('from "~/components"');
-		});
-
-		it("area-specific llms-full.txt", async () => {
-			const request = new Request(
-				"http://fakehost/developer-platform/llms-full.txt",
-			);
-			const response = await SELF.fetch(request);
-
-			expect(response.status).toBe(200);
-
-			const text = await response.text();
-			expect(text).toContain("URL: https://developers.cloudflare.com/");
-			expect(text).toContain('from "~/components"');
-		});
-	});
-
-	describe("index.md handling", () => {
-		it("style-guide fixture", async () => {
-			const request = new Request(
-				"http://fakehost/style-guide/fixtures/markdown/index.md",
-			);
-			const response = await SELF.fetch(request);
-
-			expect(response.status).toBe(200);
-
-			const text = await response.text();
-			expect(text).toMatchInlineSnapshot(`
-				"---
-				title: Markdown · Cloudflare Style Guide
-				description: The HTML generated by this file is used as a test fixture for our Markdown generation.
-				lastUpdated: 2025-01-01T00:00:00.000Z
-				source_url:
-				  html: http://fakehost/style-guide/fixtures/markdown/
-				  md: http://fakehost/style-guide/fixtures/markdown/index.md
-				---
-
-				The HTML generated by this file is used as a test fixture for our Markdown generation.
-
-				* mdx
-
-				  \`\`\`mdx
-				  test
-				  \`\`\`
-
-				* md
-
-				  \`\`\`md
-				  test
-				  \`\`\`
-				"
-			`);
-		});
-
-		it("responds with 404.html at `/non-existent/index.md`", async () => {
-			const request = new Request("http://fakehost/non-existent/index.md");
-			const response = await SELF.fetch(request);
-			expect(response.status).toBe(404);
-			expect(await response.text()).toContain("Page not found.");
+			// Should not be a redirect — just serve normally via ASSETS
+			expect(response.status).not.toBe(301);
 		});
 	});
 
@@ -295,15 +161,19 @@ describe("Cloudflare Docs", () => {
 			const html = await response.text();
 			const dom = parse(html);
 
-			it("product meta tags", () => {
+			it("meta tags", () => {
 				const product = dom.querySelector("meta[name='pcx_product']")
 					?.attributes.content;
 
 				const group = dom.querySelector("meta[name='pcx_content_group']")
 					?.attributes.content;
 
+				const content_type = dom.querySelector("meta[name='pcx_content_type']")
+					?.attributes.content;
+
 				expect(product).toBe("Workers");
 				expect(group).toBe("Developer platform");
+				expect(content_type).toBe("Overview");
 			});
 
 			it("index.md rel='alternate' tag", () => {
@@ -326,9 +196,9 @@ describe("Cloudflare Docs", () => {
 			});
 		});
 
-		describe("/style-guide/fixtures/markdown/", async () => {
+		describe("/changelog/ entry content types", async () => {
 			const request = new Request(
-				"http://fakehost/style-guide/fixtures/markdown/",
+				"http://fakehost/changelog/post/2025-03-03-saml-oidc-fields-saml-transformations/",
 			);
 			const response = await SELF.fetch(request);
 			expect(response.status).toBe(200);
@@ -336,27 +206,19 @@ describe("Cloudflare Docs", () => {
 			const html = await response.text();
 			const dom = parse(html);
 
-			it("title", () => {
-				const title = dom.querySelector("title")?.textContent;
-
-				expect(title).toMatchInlineSnapshot(
-					`"Markdown · Cloudflare Style Guide"`,
-				);
-			});
-
-			it("description", () => {
-				const desc = dom.querySelector("meta[name='description']")?.attributes
-					.content;
-
-				const og = dom.querySelector("meta[property='og:description']")
+			it("correct meta tags", () => {
+				const product = dom.querySelector("meta[name='pcx_product']")
 					?.attributes.content;
 
-				expect(desc).toMatchInlineSnapshot(
-					`"The HTML generated by this file is used as a test fixture for our Markdown generation."`,
-				);
-				expect(og).toMatchInlineSnapshot(
-					`"The HTML generated by this file is used as a test fixture for our Markdown generation."`,
-				);
+				const group = dom.querySelector("meta[name='pcx_content_group']")
+					?.attributes.content;
+
+				const content_type = dom.querySelector("meta[name='pcx_content_type']")
+					?.attributes.content;
+
+				expect(product).toBe("Access");
+				expect(group).toBe("Cloudflare One");
+				expect(content_type).toBe("Changelog entry");
 			});
 		});
 	});

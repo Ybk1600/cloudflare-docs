@@ -3,12 +3,9 @@ pcx_content_type: reference
 title: Metrics
 sidebar:
   order: 11
-banner:
-  content: We recommend using <strong>Cloudflare Workers</strong> for new projects. For existing Pages projects, see our <a href="/workers/static-assets/migrate-from-pages/">migration guide</a> and <a href="/workers/static-assets/migrate-from-pages/#compatibility-matrix">compatibility matrix</a>.
-  type: note
-  dismissible:
-    id: pages-migrate-to-workers
 ---
+
+import { DashButton } from "~/components";
 
 Functions metrics can help you diagnose issues and understand your workloads by showing performance and usage data for your Functions.
 
@@ -16,8 +13,10 @@ Functions metrics can help you diagnose issues and understand your workloads by 
 
 Functions metrics aggregate request data for an individual Pages project. To view your Functions metrics:
 
-1. Log in to the [Cloudflare dashboard](https://dash.cloudflare.com) and select your account.
-2. In **Account Home**, select **Workers & Pages** > in **Overview**, select your Pages project.
+1. In the Cloudflare dashboard, go to the **Workers & Pages** page.
+
+   <DashButton url="/?to=/:account/workers-and-pages" />
+2. Select your Pages project.
 3. In your Pages project, select **Functions Metrics**.
 
 There are three metrics that can help you understand the health of your Function:
@@ -49,7 +48,7 @@ Function invocation statuses indicate whether a Function executed successfully o
 | Exceeded resources^1   | Worker script exceeded runtime limits                 | 1102, 1027         | exceededResources    |
 | Internal error^2       | Workers runtime encountered an error                  |                    | internalError        |
 
-1. The Exceeded Resources status may appear when the Worker exceeds a [runtime limit](/workers/platform/limits/#request-limits). The most common cause is excessive CPU time, but is also caused by a script exceeding startup time or free tier limits.
+1. The Exceeded Resources status may appear when the Worker exceeds a [runtime limit](/workers/platform/limits/#request-and-response-limits). The most common cause is excessive CPU time, but is also caused by a script exceeding startup time or free tier limits.
 2. The Internal Error status may appear when the Workers runtime fails to process a request due to an internal failure in our system. These errors are not caused by any issue with the Function code nor any resource limit. While requests with Internal Error status are rare, some may appear during normal operation. These requests are not counted towards usage for billing purposes. If you notice an elevated rate of requests with Internal Error status, review [www.cloudflarestatus.com](http://www.cloudflarestatus.com).
 
 To further investigate exceptions, refer to [Debugging and Logging](/pages/functions/debugging-and-logging)

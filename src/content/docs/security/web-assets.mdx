@@ -6,7 +6,13 @@ sidebar:
 description: Discover web assets such as your API endpoints and instruct Cloudflare how to best protect them.
 ---
 
+import { DashButton } from "~/components";
+
 Discover web assets such as your API endpoints and instruct Cloudflare how to best protect them.
+
+To access web assets in the new security dashboard, go to the **Web assets** page.
+
+<DashButton url="/?to=/:account/:zone/security/web-assets" />
 
 ## Endpoints
 
@@ -43,7 +49,13 @@ Use **Sequences** to discover how users interact with your API, by tracking the 
 
 Once you configure [session identifiers](/api-shield/management-and-monitoring/session-identifiers/), the **Sequences** tab will start grouping and highlighting important user journeys (sequences) across your API.
 
-To configure session identifiers, go to **Security** > **Settings** > **All settings** tab and select **Edit** next to **Session identifiers**.
+To configure session identifiers:
+
+1. In the Cloudflare dashboard, go to the Security **Settings** page.
+
+   <DashButton url="/?to=/:account/:zone/security/settings" />
+
+2. Next to **Session identifiers**, select **Configure session identifiers** .
 
 For more information on how Cloudflare identifies API sequences and how you can configure API sequence rules, refer to the following resources:
 
@@ -73,12 +85,12 @@ The **Schema validation** tab includes functionality available in [API Shield](/
 
 ## Client-side resources
 
-Use **Client-side resources** to [monitor scripts, connections, and cookies](/page-shield/detection/monitor-connections-scripts/) on your domain.
+Use **Client-side resources** to [monitor scripts, connections, and cookies](/client-side-security/detection/monitor-connections-scripts/) on your domain.
 
 If you notice unexpected scripts or connections on the dashboard, check them for signs of malicious activity. You should also check for any new or unexpected cookies.
 
-Enterprise customers with a paid add-on will have their connections and scripts [classified as potentially malicious](/page-shield/how-it-works/malicious-script-detection/) based on threat feeds.
+Enterprise customers with a paid add-on will have their connections and scripts [classified as potentially malicious](/client-side-security/how-it-works/malicious-script-detection/) based on threat feeds.
 
 :::note
-The **Client-side resources** tab includes functionality available in [Page Shield](/page-shield/) in the previous dashboard navigation structure.
+The **Client-side resources** tab includes functionality available in [client-side security](/client-side-security/) (formerly known as Page Shield) in the previous dashboard navigation structure.
 :::

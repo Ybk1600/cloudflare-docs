@@ -6,11 +6,11 @@ import { Render, PackageManagers } from "~/components";
 
 Install the `node-postgres` driver:
 
-<PackageManagers pkg="pg@>8.13.0" />
+<PackageManagers pkg="pg@>8.16.3" />
 
 :::note
 
-The minimum version of `node-postgres` required for Hyperdrive is `8.13.0`.
+The minimum version of `node-postgres` required for Hyperdrive is `8.16.3`.
 
 :::
 
@@ -34,7 +34,8 @@ export default {
 		env: Env,
 		ctx: ExecutionContext,
 	): Promise<Response> {
-		// Create a new client instance for each request.
+		// Create a new client instance for each request. Hyperdrive maintains the
+		// underlying database connection pool, so creating a new client is fast.
 		const client = new Client({
 			connectionString: env.HYPERDRIVE.connectionString,
 		});
@@ -42,13 +43,9 @@ export default {
 		try {
 			// Connect to the database
 			await client.connect();
-			console.log("Connected to PostgreSQL database");
 
 			// Perform a simple query
 			const result = await client.query("SELECT * FROM pg_tables");
-
-			// Clean up the client after the response is returned, before the Worker is killed
-			env.waitUntil(client.end());
 
 			return Response.json({
 				success: true,
@@ -57,7 +54,7 @@ export default {
 		} catch (error: any) {
 			console.error("Database error:", error.message);
 
-			return Response.error();
+			return new Response("Internal error occurred", { status: 500 });
 		}
 	},
 };
